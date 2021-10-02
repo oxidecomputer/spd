@@ -1,6 +1,6 @@
 #![no_std]
 
-//! spd: A crate fpr Serial Presence Detect manipulation
+//! spd: A no_std crate for Serial Presence Detect manipulation
 
 pub use num_derive::{FromPrimitive, ToPrimitive};
 pub use num_traits::{FromPrimitive, ToPrimitive};
