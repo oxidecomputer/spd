@@ -7,12 +7,28 @@ pub use num_traits::{FromPrimitive, ToPrimitive};
 
 type SelectAddress = u8;
 type Block = u8;
-type Page = u8;
 
 pub const MAX_DEVICES: u8 = 8;
-
 pub const MAX_SIZE: u16 = 512;
+pub const PAGE_SIZE: u16 = 256;
 
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct Page(pub u8);
+
+impl Page {
+    pub fn offset(&self) -> usize {
+        if self.0 == 0 {
+            0
+        } else {
+            PAGE_SIZE as usize
+        }
+    }
+}
+
+///
+/// Functions as described in Table 2 of EE1004.
+///
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Function {
     Temperature(SelectAddress),
     Memory(SelectAddress),
@@ -49,7 +65,7 @@ pub enum Offset {
     TRPMin = 0x01a,
     UpperNibblesTRASMin = 0x01b,
     TRASMin = 0x01c,
-    
+
     TRCMin = 0x01d,
     TRFC1MinLSB = 0x01e,
     TRFC1MinMSB = 0x01f,
@@ -104,7 +120,11 @@ impl Offset {
 }
 
 impl Function {
-    pub fn to_code(self) -> Option<u8> {
+    ///
+    /// For a given function, return its device code.  This code follows the
+    /// structure of Table 2 in EE1004.
+    ///
+    pub fn to_device_code(self) -> Option<u8> {
         match self {
             Function::Temperature(addr) => {
                 if addr <= 0b111 {
@@ -130,23 +150,49 @@ impl Function {
                     1 => Some(dtid | 0b100),
                     2 => Some(dtid | 0b101),
                     3 => Some(dtid | 0b000),
-                    _ => None
+                    _ => None,
                 }
             }
 
-            Function::ClearAllWriteProtection => {
-                Some(0b0110_011)
-            }
+            Function::ClearAllWriteProtection => Some(0b0110_011),
 
             Function::PageAddress(page) => {
                 let dtid = 0b0110 << 3;
 
-                match page {
+                match page.0 {
                     0 => Some(dtid | 0b110),
                     1 => Some(dtid | 0b111),
-                    _ => None
+                    _ => None,
                 }
             }
+        }
+    }
+
+    ///
+    /// For a given device code, return the function (if any).  This code follows
+    /// the structure of Table 2 in EE1004, which yes, is in function order
+    /// not device code order.
+    ///
+    pub fn from_device_code(code: u8) -> Option<Self> {
+        let device_type_identifier = code >> 3;
+        let select_address = code & 0b111;
+
+        match device_type_identifier {
+            0b0011 => Some(Function::Temperature(select_address)),
+
+            0b1010 => Some(Function::Memory(select_address)),
+
+            0b0110 => match select_address {
+                0b001 => Some(Function::ProtectionStatus(0)),
+                0b100 => Some(Function::ProtectionStatus(1)),
+                0b101 => Some(Function::ProtectionStatus(2)),
+                0b000 => Some(Function::ProtectionStatus(3)),
+                0b011 => Some(Function::ClearAllWriteProtection),
+                0b110 => Some(Function::PageAddress(Page(0))),
+                0b111 => Some(Function::PageAddress(Page(1))),
+                _ => None,
+            },
+            _ => None,
         }
     }
 }
@@ -155,16 +201,25 @@ impl Function {
 mod tests {
     use super::*;
     extern crate std;
+    use std::println;
 
     #[test]
     fn table() {
-        use std::println;
+        assert_eq!(Function::Temperature(0).to_device_code(), Some(0b0011_000));
+        assert_eq!(Function::Temperature(1).to_device_code(), Some(0b0011_001));
+        assert_eq!(Function::Temperature(9).to_device_code(), None);
+        assert_eq!(Function::Memory(0).to_device_code(), Some(0b1010_000));
+        assert_eq!(Function::Memory(1).to_device_code(), Some(0b1010_001));
+        assert_eq!(Function::Memory(9).to_device_code(), None);
+    }
 
-        assert_eq!(Function::Temperature(0).to_code(), Some(0b0011_000));
-        assert_eq!(Function::Temperature(1).to_code(), Some(0b0011_001));
-        assert_eq!(Function::Temperature(9).to_code(), None);
-        assert_eq!(Function::Memory(0).to_code(), Some(0b1010_000));
-        assert_eq!(Function::Memory(1).to_code(), Some(0b1010_001));
-        assert_eq!(Function::Memory(9).to_code(), None);
+    #[test]
+    fn alladdr() {
+        for i in 0..=0xff {
+            if let Some(func) = Function::from_device_code(i) {
+                println!("0x{:02x} {:?}", i, func);
+                assert_eq!(func.to_device_code(), Some(i));
+            }
+        }
     }
 }
