@@ -9,8 +9,8 @@ type SelectAddress = u8;
 type Block = u8;
 
 pub const MAX_DEVICES: u8 = 8;
-pub const MAX_SIZE: u16 = 512;
-pub const PAGE_SIZE: u16 = 256;
+pub const MAX_SIZE: usize = 512;
+pub const PAGE_SIZE: usize = 256;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Page(pub u8);
@@ -20,7 +20,7 @@ impl Page {
         if self.0 == 0 {
             0
         } else {
-            PAGE_SIZE as usize
+            PAGE_SIZE
         }
     }
 }
