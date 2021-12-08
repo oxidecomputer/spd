@@ -160,7 +160,7 @@ impl Function {
                 }
             }
 
-            Function::ClearAllWriteProtection => Some(0b0110_011),
+            Function::ClearAllWriteProtection => Some(0b011_0011),
 
             Function::PageAddress(page) => {
                 let dtid = 0b0110 << 3;
