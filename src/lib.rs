@@ -155,12 +155,12 @@ impl Function {
                     0 => Some(dtid | 0b001),
                     1 => Some(dtid | 0b100),
                     2 => Some(dtid | 0b101),
-                    3 => Some(dtid | 0b000),
+                    3 => Some(dtid),
                     _ => None,
                 }
             }
 
-            Function::ClearAllWriteProtection => Some(0b0110_011),
+            Function::ClearAllWriteProtection => Some(0b011_0011),
 
             Function::PageAddress(page) => {
                 let dtid = 0b0110 << 3;
