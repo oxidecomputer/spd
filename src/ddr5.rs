@@ -6,6 +6,8 @@
 
 //! DDR5 SPD, based on JESD400-5C
 
+pub const MAX_SIZE: usize = 1024;
+
 /// Memory offsets within the 1024-byte data array
 ///
 /// See Tables 17 and 91 in JESD400-5C
